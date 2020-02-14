@@ -1,9 +1,12 @@
 # COC_Robot_Marisa
 一个提供各种COC跑团功能的聊天机器人，基于酷Q HTTP API。
+
 支持的功能包括投骰子，录入属性和检定等。后续的开发会提供更多功能。
 ## 需求环境
 **硬件**：一台服务器
+
 **系统**：Ubuntu16.04，理论上支持各类linux系统
+
 **软件**：
  - python 3.6 以上
  - Django
@@ -39,13 +42,21 @@ docker logs coolq # 查看
 ```
 另外的可以修改的参数包括：
 参数|值
+
 ---------|-------------
+
  -p 8080:9000 |可以把8080改到任意端口，用于使用浏览器连接docker的桌面。
+ 
  -p 5700:5700 |可以把前一个5700改成任意端口，用于连接酷Q的HTTP API。
+ 
  -v /root/coolq-data|可以改成之前新建的文件夹，用于做文件夹储存位置的映射
+ 
  VNC_PASSWD=12345678|可以自己设置密码，用于连接docker的远程桌面
+ 
  COOLQ_ACCOUNT=123456|登录的机器人的QQ号
+ 
 运行后，会看到控制台中输出一系列日志。当你看到 [CQDaemon] Started CoolQ . 时，说明已启动成功。
+
 此时，在浏览器中访问 http://你的服务器IP:你的端口 即可看到远程操作登录页面，输入密码，看到 酷Q Air 登录界面即为成功。
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20200214110518879.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L21vdHRsZWQyMzM=,size_16,color_FFFFFF,t_70)
 此时，在新建的文件夹下会多出酷Q的相关文件，文件结构和在windows平台一样。在app文件夹下可以放入cpk文件添加插件。
