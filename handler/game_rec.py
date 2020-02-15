@@ -120,6 +120,6 @@ class Role(object):
     def toString(self):
         role = {'roleStr': self.roleStr, 'skill': self.skill, 'statusList': self.statusList,
                 'specialStatusList': self.specialStatusList, 'proSkill': self.proSkill}
-        json_str = json.dumps(role, encoding='gbk')
+        json_str = json.dumps(role)
         logger.info(json_str)
         return json_str

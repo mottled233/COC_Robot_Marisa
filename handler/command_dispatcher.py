@@ -18,7 +18,7 @@ def roll_dice(express):
     if index_d == -1:
         index_d = express.find('D')
     if index_d == -1:
-        return ['0', 0]
+        return ['固定{}'.format(express), int(express)]
     num_of_dice = 1
     if index_d != 0:
         num_of_dice = int(express[0:index_d])
@@ -42,10 +42,9 @@ def covert_at(at_str):
 
 def check(player, item):
     if player.getSkill(item) < 0:
-        res = player.getSkill(item.decode('gbk'))
+        res = player.getSkill(item)
         if res < 0:
-            logger.info(2)
-            res = player.getSkill(item.encode('gbk'))
+            res = player.getSkill(item)
         return res
     else:
         return player.getSkill(item)
@@ -53,11 +52,11 @@ def check(player, item):
 
 def touch(player, item):
     if player.getSkill(item) < 0:
-        key = item.decode('gbk')
+        key = item
         res = player.getSkill(key)
         if res < 0:
             logger.info(2)
-            key = item.encode('gbk')
+            key = item
             res = player.getSkill(key)
             if res < 0:
                 return False
@@ -68,6 +67,7 @@ def touch(player, item):
 
 class CommandDispatcher(object):
     def __init__(self):
+        random.seed()
         logger.info('dispatcher inited')
         self.games = {}
         self.cmd_dict = {'r': RollDiceCommand(), 'coc7': RoleGenerateCommand(), 'c': CheckCommand(self.games),
@@ -262,20 +262,11 @@ class SanCheckCommand(AbstractCommand):
             result = False
 
         slashIndex = args[index].find('/')
-        trueDamage = 0
-        successDamage = int(args[index][0:slashIndex])
-        if slashIndex == -1:
-            trueDamage = successDamage
-            result = "无检定"
-        else:
-            if result:
-                trueDamage = successDamage
-                result = "成功"
-            else:
-                failDamage = args[index][slashIndex + 1:]
-                diceValue = roll_dice(failDamage)
-                trueDamage = diceValue[1]
-                result = "失败"
+
+        damage = args[index][0:slashIndex] if result else args[index][slashIndex + 1:]
+        result = "成功" if result else "失败"
+        diceValue = roll_dice(damage)
+        trueDamage = diceValue[1]
         player.setSkill('san', needBelow - trueDamage)
 
         result = "{4}的{0}当前为{1}, 投骰结果为{2}, 检定结果：{3}。扣除san值{5}点，当前san值：{6}".format('san值', needBelow, dice, result, call,

@@ -20,15 +20,15 @@ def marisa(request):
     post = json.loads(request.body.decode('utf-8'))
     logger.debug("收到信息：" + str(post))
     message = post.get("message", "")
-    send_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(post["time"]))
+    # send_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(post["time"]))
     message_type = post.get("message_type", "")
-    self_qq = post.get("self_id", "")
+    # self_qq = post.get("self_id", "")
     sender_qq = post["sender"]["user_id"]
-    sender_name = post["sender"]["nickname"]
+    # sender_name = post["sender"]["nickname"]
     if message_type == "group":
         group_id = post["group_id"]
-        sender_card = post["sender"]["card"]
-        OnEvent_GroupMsg(group_id=group_id, sender_id=sender_qq, sender_name=sender_card, msg=message)
+        # sender_card = post["sender"]["card"]
+        OnEvent_GroupMsg(group_id=group_id, sender_id=sender_qq, msg=message)
 
     elif message_type == "private":
         OnEvent_PrivateMsg(fromQQ=sender_qq, msg=message)
@@ -50,7 +50,7 @@ def OnEvent_PrivateMsg(fromQQ, msg):
         logging.exception(e)
 
 
-def OnEvent_GroupMsg(group_id, sender_id, sender_name, msg):
+def OnEvent_GroupMsg(group_id, sender_id, msg):
     try:
         if dispatcher.is_command(msg):
             res = dispatcher.execute_cmd(msg, sender_id, group_id)
