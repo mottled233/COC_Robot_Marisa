@@ -10,6 +10,7 @@
 **软件**：
  - python 3.6 以上
  - Django
+ - mysql 5.7
  -  Ubuntu Server 16.04 LTS & Docker CE 
 
 ## 配置docker
@@ -82,6 +83,12 @@ docker logs coolq # 查看
 
 下载本项目代码后，在项目目录下使用命令：
 ```
+# 配置数据库，在这之前请先启动mysql服务
+python manage.py migrate
+python manage.py makemigrations CardModel
+python manage.py migrate TestModel
+
+# 运行服务器
 python manage.py runserver 0.0.0.0:8000
 ```
 即可启动处理服务器。

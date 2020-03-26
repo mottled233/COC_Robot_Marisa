@@ -8,6 +8,9 @@ import random
 import handler.game_rec as rec
 import json
 import handler.lottery as lottery
+import service.card_service as card_service
+import service.draw_service as draw_service
+import datetime
 
 
 logger = logging.getLogger(utils.log.Logger.LOGGER_NAME)
@@ -70,12 +73,17 @@ class CommandDispatcher(object):
         random.seed()
         logger.info('dispatcher inited')
         self.games = {}
+        self.user_chance = {}
         self.cmd_dict = {'r': RollDiceCommand(), 'coc7': RoleGenerateCommand(), 'c': CheckCommand(self.games),
                          'sc': SanCheckCommand(self.games), 'join': JoinCommand(self.games),
                          'startGame': StartGameCommand(self.games), 'exitGame': ExitGameCommand(self.games),
                          'v': ViewCommand(self.games), 'save': SaveGameCommand(self.games),
                          'load': LoadGameCommand(self.games), 'd': DamageCommand(self.games),
-                         'luck': LuckCommand(), 'ping': PingCommand()}
+                         'luck': LuckCommand(), 'ping': PingCommand(),
+                         'draw': DrawCardCommand(), 'show': ShowCollectCommand(),
+                         'jrrp': JRRPCommand(), 'desc': DescriptionCollectCommand(),
+                         'send': SendCardCommand(), 'adminjrrp': AdminJRRPCommand(),
+                         'addcard':AddCardCommand()}
 
         self.cmd_dict['help'] = HelpCommand(self.cmd_dict)
 
@@ -470,6 +478,163 @@ class DamageCommand(AbstractCommand):
         return '/d [at玩家] 属性 伤害表达式  指定某属性受到多少点伤害或恢复'
 
 
+class DrawCardCommand(AbstractCommand):
+    def __init__(self):
+        pass
+
+    def execute_cmd(self, args, fromQQ, from_group):
+        logger.info("进入drawCard命令")
+        if len(args) == 0:
+            return "您必须指定抽卡池，例如：/draw scp.\n目前有SCP和COC两个卡池。"
+        card_type = args[0]
+        times = 1 if len(args) == 1 else int(args[1])
+        if times < 1:
+            return "您必须指定大于1次的调查。"
+        chance = draw_service.get_user_chance(fromQQ)
+        if chance < times:
+            return "行动否决。您没有足够的行动许可。\n您当前只有{}份许可。\n您可以使用/jrrp 命令获取每天的抽卡机会！"\
+                .format(chance)
+        result = draw_service.draw_card(user_id=fromQQ, type=card_type, times=times)
+        remains = draw_service.modify_chance(user_id=fromQQ, times=0-times)
+        return result + "\n 您还剩{}次调查机会。".format(remains)
+
+    def help(self):
+        return '===============\n收藏相关命令\n/draw 抽卡'
+
+
+class JRRPCommand(AbstractCommand):
+    def __init__(self):
+        pass
+
+    def execute_cmd(self, args, fromQQ, from_group):
+        logger.info("进入JRRP命令")
+        dice = random.randint(3, 10)
+
+        if draw_service.has_user_rolled(fromQQ, set_flag=True):
+            return "哦嚯，你今天已经用光补给份额了，您当前共有份{}行动许可，明天再来试试吧！"\
+                .format(draw_service.get_user_chance(fromQQ))
+        else:
+            remains = draw_service.modify_chance(fromQQ, times=dice)
+
+        return "您成功申请了{}份行动许可！\n当前剩余{}份行动许可。\n快使用/draw [卡池] [次数]命令来进行调查！".format(
+            dice, remains)
+
+    def help(self):
+        return '/jrrp 申请今天的调查许可！'
+
+
+class AdminJRRPCommand(AbstractCommand):
+    def __init__(self):
+        pass
+
+    def execute_cmd(self, args, fromQQ, from_group):
+        logger.info("进入JRRP命令")
+        if fromQQ != "631061840":
+            return "警告:严禁未经授权的人员进行访问\n肇事者将被监控，定位并处理."
+
+        toQQ = covert_at(args[0])
+        val = roll_dice(args[1])[1]
+
+        remains = draw_service.modify_chance(toQQ, times=val)
+
+        return "您成功为{}分配了{}份行动许可！\n当前{}剩余{}份行动许可。".format(
+            args[0], val, args[0], remains)
+
+    def help(self):
+        return '/adminjrrp 申请今天的调查许可！'
+
+
+class ShowCollectCommand(AbstractCommand):
+    def __init__(self):
+        pass
+
+    def execute_cmd(self, args, fromQQ, from_group):
+        logger.info("进入ShowCollect命令")
+        return card_service.get_user_collect(user_id=fromQQ)
+
+    def help(self):
+        return '/show 查看自己的收藏库'
+
+
+class AddCardCommand(AbstractCommand):
+    def __init__(self):
+        pass
+
+    def execute_cmd(self, args, fromQQ, from_group):
+        logger.info("进入AddCard命令")
+        if len(args) < 3:
+            return "您至少需要指定编号，名称和类型（卡池）！"
+        card_id = args[0]
+        name = args[1]
+        type = args[2]
+        rare = args[3] if len(args) >= 4 else "N"
+        desc = args[4] if len(args) >= 5 else ""
+        info = args[5] if len(args) >= 6 else None
+
+        return card_service.add_card(card_id=card_id, name=name, type=type, rare=rare, desc=desc, info=info)
+
+    def help(self):
+        return '/addcard [编号] [名称] [类型] [稀有度] [描述] [信息] 其中前三项必填'
+
+
+class DescriptionCollectCommand(AbstractCommand):
+    def __init__(self):
+        pass
+
+    def execute_cmd(self, args, fromQQ, from_group):
+        logger.info("进入DescriptionCollect命令")
+        if len(args) != 1:
+            return "请使用/desc [收藏品编号] 指定要查看的调查报告。"
+        return card_service.get_card(card_id=args[0])
+
+    def help(self):
+        return '/desc [收藏品编号] 查看指定的调查报告'
+
+
+class SendCardCommand(AbstractCommand):
+    def __init__(self):
+        pass
+
+    def execute_cmd(self, args, fromQQ, from_group):
+        logger.info("进入SendCard命令")
+
+        if len(args) != 3:
+            return "您必须按照/send [at要送的人] [收藏品编号] [数量]的格式来使用命令。"
+        to_user = covert_at(args[0])
+        card_id = args[1]
+        num = int(args[2])
+
+        return card_service.send_card(from_user=fromQQ, to_user=to_user, card_id=card_id, num=num)
+
+    def help(self):
+        return '/send [at要送的人] [收藏品编号] [数量] 将自己的藏品交换给他人。'
+
+
+class LuckCommand(AbstractCommand):
+    def __init__(self):
+        self.lottery = lottery.Lottery()
+
+    def execute_cmd(self, args, fromQQ, from_group):
+        logger.info("进入luck命令")
+        result = self.lottery.draw()
+
+        return result
+
+    def help(self):
+        return '===============\n日常相关命令\n/luck 抽签'
+
+
+class PingCommand(AbstractCommand):
+    def __init__(self):
+        pass
+
+    def execute_cmd(self, args, fromQQ, from_group):
+        return "实验"
+
+    def help(self):
+        return '/ping 看看是不是活着'
+
+
 class HelpCommand(AbstractCommand):
     def __init__(self, cmdDict):
         self.cmdDict = cmdDict
@@ -486,28 +651,4 @@ class HelpCommand(AbstractCommand):
         return '/help 查看命令帮助'
 
 
-class LuckCommand(AbstractCommand):
-    def __init__(self):
-        self.lottery = lottery.Lottery()
 
-    def execute_cmd(self, args, fromQQ, from_group):
-        logger.info("进入luck命令")
-        result = self.lottery.draw()
-
-        return result
-
-    def help(self):
-        return '/luck 抽签'
-
-
-class PingCommand(AbstractCommand):
-    def __init__(self):
-        pass
-
-    def execute_cmd(self, args, fromQQ, from_group):
-        return "ping！ping！ping！ping！ping！\nping！ping！ping！ping！ping！ping！ping！ping！ping！ping！ping！ping！ping！" \
-               "ping！ping！ping！ping！ping！ping！ping！ping！ping！ping！ping！ping！ping！ping！ping！" \
-               "/ping/ping/ping/ping/ping/ping/ping/ping/ping/ping/ping/ping/ping/ping/ping"
-
-    def help(self):
-        return '/ping 看看是不是活着'
