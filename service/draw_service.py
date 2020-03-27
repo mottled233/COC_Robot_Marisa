@@ -85,7 +85,7 @@ def has_user_rolled(user_id, set_flag=False):
         has_rolled = user[0].has_rolled
         if not user[0].has_rolled and set_flag:
             user[0].has_rolled = True
-
+            user[0].save()
         return has_rolled
 
 
