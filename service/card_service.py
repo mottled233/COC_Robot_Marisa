@@ -80,6 +80,47 @@ def send_card(from_user, to_user, card_id, num):
     return "达成交易！"
 
 
+def sell_card(from_user, rare="all"):
+    sell_price = dict()
+    if rare == "all":
+        user_cards = card_model.UserCard.objects.filter(user_id=from_user, count__gt=1)
+        prices = card_model.SellPrice.objects.all()
+
+    else:
+        card_ids = card_model.Card.objects.filter(rare=rare).values_list("card_id", flat=True)
+        user_cards = card_model.UserCard.objects.filter(user_id=from_user, count__gt=1, card_id__in=card_ids)
+        prices = card_model.SellPrice.objects.filter(rare=rare)
+
+    for price in prices:
+        sell_price[price.type+"_"+price.rare] = price.price
+
+    price_count = 0
+    count = 0
+    chance_rate = 5
+    for card in user_cards:
+        card_entity = card_model.Card.objects.get(card_id=card.card_id)
+        price = sell_price.get(card_entity.type+"_"+card_entity.rare, 1)
+        price_count += (card.count - 1) * price
+        count += (card.count - 1)
+        card.count = 1
+
+    if rare == "all":
+        card_model.UserCard.objects.filter(user_id=from_user, count__gt=1).update(count=1)
+    else:
+        card_ids = card_model.Card.objects.filter(rare=rare).values_list("card_id", flat=True)
+        card_model.UserCard.objects.filter(user_id=from_user, count__gt=1, card_id__in=card_ids).update(count=1)
+
+    user_chance = card_model.Chance.objects.get_or_create(user_id=from_user)[0]
+    user_chance.chance += int(price_count/chance_rate)
+    user_chance.save()
+
+    return "您共出售了{}件藏品，共获得价值{}。\n已按照（{}/份）的汇率转换为行动许可{}份。\n您目前剩余{}份行动许可。"\
+        .format(count, price_count, chance_rate, int(price_count/chance_rate), user_chance.chance)
+
+
+
+
+
 def format_card(card):
     result = "[{name}]\n" \
              "编号：{id}\n" \

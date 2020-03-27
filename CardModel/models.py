@@ -26,9 +26,23 @@ class Probability(models.Model):
     is_default = models.BooleanField(default=False, blank=False)
     prob = models.FloatField(blank=False)
 
+    class Meta:
+        unique_together = ("type", "rare")
+
 
 class Chance(models.Model):
     user_id = models.CharField(primary_key=True, max_length=255)
     chance = models.IntegerField(default=0, blank=False)
     has_rolled = models.BooleanField(default=False, blank=False)
+
+
+class SellPrice(models.Model):
+    type = models.CharField(max_length=255, blank=False)
+    rare = models.CharField(max_length=255, blank=False)
+    price = models.FloatField(blank=False)
+
+    class Meta:
+        unique_together = ("type", "rare")
+
+
 

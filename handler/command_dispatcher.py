@@ -83,7 +83,7 @@ class CommandDispatcher(object):
                          'draw': DrawCardCommand(), 'show': ShowCollectCommand(),
                          'jrrp': JRRPCommand(), 'desc': DescriptionCollectCommand(),
                          'send': SendCardCommand(), 'adminjrrp': AdminJRRPCommand(),
-                         'addcard':AddCardCommand()}
+                         'addcard': AddCardCommand(), "sell": SellCardCommand()}
 
         self.cmd_dict['help'] = HelpCommand(self.cmd_dict)
 
@@ -589,6 +589,23 @@ class DescriptionCollectCommand(AbstractCommand):
 
     def help(self):
         return '/desc [收藏品编号] 查看指定的调查报告'
+
+
+class SellCardCommand(AbstractCommand):
+    def __init__(self):
+        pass
+
+    def execute_cmd(self, args, fromQQ, from_group):
+        logger.info("SellCard")
+        if len(args) >= 1:
+            rare = args[0]
+        else:
+            rare = "all"
+
+        return card_service.sell_card(from_user=fromQQ, rare=rare)
+
+    def help(self):
+        return '/sell [稀有度] 售卖所有给定条件的多余收藏物，不指定条件默认出售全部'
 
 
 class SendCardCommand(AbstractCommand):
